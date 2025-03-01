@@ -41,6 +41,7 @@
 
 # Log file
 *.log
+logs/
 
 # BlueJ files
 *.ctxt
@@ -169,22 +170,11 @@ out/
 .fleet
 
 # Simulation GUI and other tools window save file
-networktables.json
-simgui.json
-*-window.json
+simgui*.json
 
-# Simulation data log directory
-logs/
+# Version file
+src/main/java/frc/robot/BuildConstants.java
 
-# Folder that has CTRE Phoenix Sim device config storage
+#simdata
 ctre_sim/
 
-# clangd
-/.cache
-compile_commands.json
-
-# Eclipse generated file for annotation processors
-.factorypath
-
-
-src/main/java/frc/robot/BuildConstants.java

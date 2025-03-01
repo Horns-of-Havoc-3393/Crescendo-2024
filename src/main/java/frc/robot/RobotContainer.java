@@ -1,41 +1,44 @@
 package frc.robot;
 
-import org.littletonrobotics.junction.networktables.LoggedNetworkNumber;
-
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
-import com.revrobotics.spark.SparkLowLevel.MotorType;
-import com.revrobotics.spark.SparkMax;
-import com.studica.frc.AHRS;
-
-import edu.wpi.first.wpilibj2.command.InstantCommand;
+import com.kauailabs.navx.frc.AHRS;
+import com.revrobotics.CANSparkFlex;
+import com.revrobotics.CANSparkLowLevel.MotorType;
+import com.revrobotics.CANSparkMax;
+import edu.wpi.first.networktables.NetworkTable;
+import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.robot.Commands.SwerveAbs;
 import frc.robot.Commands.autoCmd;
 import frc.robot.Constants.driveConstants;
+import frc.robot.Constants.shooterConstants;
 import frc.robot.Positioning.PosIONavX;
 import frc.robot.Subsystems.Drive.SwerveBase;
-import frc.robot.Subsystems.ElvManipSubsystem;
+import frc.robot.Subsystems.Shooter;
+import org.littletonrobotics.junction.Logger;
+import org.littletonrobotics.junction.networktables.LoggedDashboardNumber;
 
 public class RobotContainer {
 
   TalonFX[] driveMotors = new TalonFX[4];
   TalonFX[] steerMotors = new TalonFX[4];
   CANcoder[] encoders = new CANcoder[4];
-  SparkMax elevator1 = new SparkMax(21, MotorType.kBrushless);
-  SparkMax elevator2 = new SparkMax(22, MotorType.kBrushless);
-  SparkMax wristMotor = new SparkMax(24, MotorType.kBrushless);
-  SparkMax rollerMotor = new SparkMax(25, MotorType.kBrushless);
+  CANSparkMax elevator1 = new CANSparkMax(20, MotorType.kBrushless);
+  CANSparkMax elevator2 = new CANSparkMax(21, MotorType.kBrushless);
+  CANSparkMax intake = new CANSparkMax(22, MotorType.kBrushless);
+  CANSparkFlex shooter1 = new CANSparkFlex(24, MotorType.kBrushless);
+  CANSparkFlex shooter2 = new CANSparkFlex(23, MotorType.kBrushless);
+  CANSparkFlex conveyor = new CANSparkFlex(25, MotorType.kBrushless);
   public SwerveBase swerve;
+  public Shooter shooter;
 
-  public ElvManipSubsystem elvManSub = new ElvManipSubsystem(elevator1, elevator2, wristMotor, rollerMotor);
-
-  LoggedNetworkNumber shooterSpeed = new LoggedNetworkNumber("/SmartDashboard/Shooter/speed", 0.0);
+  LoggedDashboardNumber shooterSpeed = new LoggedDashboardNumber("Shooter/speed", 0.0);
 
   public SwerveAbs absCmd;
 
   private final CommandXboxController controller = new CommandXboxController(0);
-  private final CommandXboxController armOperater = new CommandXboxController(1);
 
   public autoCmd auto;
 
@@ -44,7 +47,6 @@ public class RobotContainer {
   public RobotContainer() {
     deviceFactory();
 
-    Constants.initLiveConstants();
     swerve =
         new SwerveBase(
             driveMotors,
@@ -52,32 +54,88 @@ public class RobotContainer {
             encoders,
             driveConstants.offsets,
             driveConstants.absoluteEncoderOffsets,
-            new PosIONavX(new AHRS(AHRS.NavXComType.kMXP_SPI)));
+            new PosIONavX(new AHRS()));
 
+    shooter = new Shooter(shooter1, shooter2, conveyor, elevator1, elevator2, intake);
     configureBinds();
 
     // auto = new autoCmd(swerve);
 
+    NetworkTableInstance inst = NetworkTableInstance.getDefault();
+    NetworkTable pids = inst.getTable("SmartDashboard/PIDs");
+    pids.getDoubleTopic("driveS").publish().set(driveConstants.driveS);
+    pids.getDoubleTopic("driveV").publish().set(driveConstants.driveV);
+    pids.getDoubleTopic("driveP").publish().set(driveConstants.driveP);
+    pids.getDoubleTopic("driveI").publish().set(driveConstants.driveI);
+    pids.getDoubleTopic("driveD").publish().set(driveConstants.driveD);
+
+    pids.getDoubleTopic("steerP").publish().set(driveConstants.steerP);
+    pids.getDoubleTopic("steerI").publish().set(driveConstants.steerI);
+    pids.getDoubleTopic("steerD").publish().set(driveConstants.steerD);
+
     absCmd = new SwerveAbs(swerve, controller);
 
+    shooterSpeed.set(shooterConstants.shooterSpeed);
   }
 
   private void configureBinds() {
-    controller.y().onTrue(new InstantCommand(() -> {swerve.zeroGyro();}, swerve));
+    controller
+        .rightStick()
+        .onTrue(
+            Commands.runOnce(
+                () -> {
+                  swerve.zeroGyro();
+                  System.out.println("zero");
+                }));
+    controller.y().onTrue(Commands.runOnce(() -> shooter.setAngle(Shooter.angleSetpoints.SHOOT)));
+    controller.b().onTrue(Commands.runOnce(() -> shooter.setAngle(Shooter.angleSetpoints.DRIVE)));
+    controller.x().onTrue(Commands.runOnce(() -> shooter.setAngle(Shooter.angleSetpoints.AMP)));
+    controller.a().onTrue(Commands.runOnce(() -> shooter.setAngle(Shooter.angleSetpoints.LOAD)));
 
-    armOperater.rightBumper().onTrue(new InstantCommand(() -> {elvManSub.normal_out();}, elvManSub));
-    armOperater.rightBumper().onFalse(new InstantCommand(() -> {elvManSub.stopRollers();}, elvManSub));
-    armOperater.leftBumper().onTrue(new InstantCommand(() -> {elvManSub.normal_in();}, elvManSub));
-    armOperater.leftBumper().onFalse(new InstantCommand(() -> {elvManSub.stopRollers();}, elvManSub));
-    armOperater.start().onTrue(new InstantCommand(() -> {elvManSub.gotoSetpoint(ElvManipSubsystem.setpoints.CORAL);}, elvManSub));
-    armOperater.start().onFalse(new InstantCommand(() -> {elvManSub.gotoSetpoint(ElvManipSubsystem.setpoints.STOW);}, elvManSub));
-    armOperater.a().onTrue(new InstantCommand(() -> {elvManSub.gotoSetpoint(ElvManipSubsystem.setpoints.L1);}, elvManSub));
-    armOperater.x().onTrue(new InstantCommand(() -> {elvManSub.gotoSetpoint(ElvManipSubsystem.setpoints.L2);}, elvManSub));
-    armOperater.y().onTrue(new InstantCommand(() -> {elvManSub.gotoSetpoint(ElvManipSubsystem.setpoints.L3);}, elvManSub));
-    armOperater.b().onTrue(new InstantCommand(() -> {elvManSub.gotoSetpoint(ElvManipSubsystem.setpoints.L4);}, elvManSub));
-    armOperater.back().onTrue(new InstantCommand(() -> {elvManSub.gotoSetpoint(ElvManipSubsystem.setpoints.DISLODGE);}, elvManSub));
-
-    //swerve.setDefaultCommand(absCmd);
+    controller
+        .leftTrigger(0.5)
+        .whileTrue(
+            Commands.run(
+                    () -> {
+                      shooter.setConveyorSpeed(0.5);
+                      shooter.setSpeed(-5);
+                      System.out.println("trigger");
+                    })
+                .finallyDo(
+                    () -> {
+                      shooter.setConveyorSpeed(0);
+                      shooter.setSpeed(0);
+                    }));
+    controller
+        .rightTrigger(0.5)
+        .whileTrue(
+            Commands.run(
+                    () -> {
+                      if ((Logger.getRealTimestamp() - spinUp) * 0.000001 > 2) {
+                        shooter.setConveyorSpeed(-3);
+                        System.out.println("trigger2");
+                      }
+                    })
+                .beforeStarting(
+                    Commands.runOnce(
+                        () -> {
+                          shooter.setSpeed(shooterSpeed.get());
+                          spinUp = Logger.getRealTimestamp();
+                        }))
+                .finallyDo(
+                    () -> {
+                      shooter.setConveyorSpeed(0);
+                      shooter.setSpeed(0);
+                    }));
+    controller
+        .rightBumper()
+        .whileTrue(
+            Commands.run(
+                    () -> {
+                      shooter.setSpeed(15);
+                      System.out.println("bumper");
+                    })
+                .finallyDo(() -> shooter.setSpeed(0)));
   }
 
   private void deviceFactory() {

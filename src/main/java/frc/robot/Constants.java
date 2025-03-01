@@ -13,8 +13,6 @@
 
 package frc.robot;
 
-import org.littletonrobotics.junction.networktables.LoggedNetworkNumber;
-
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 
@@ -31,13 +29,10 @@ public final class Constants {
   public static final class driveConstants {
     public static final double currentLimit = 40; // Decrease when browning out
 
-    // Default values for these constants should be set in initLiveConstants() below
-    public static final LoggedNetworkNumber maxSpeedMPS = new LoggedNetworkNumber("/SmartDashboard/Control/LateralMaxSpeed");
-    public static final LoggedNetworkNumber maxRotRPS = new LoggedNetworkNumber("/SmartDashboard/Control/AngularMaxSpeed");
-    public static final LoggedNetworkNumber lateralAccelLimitMPSPS = new LoggedNetworkNumber("/SmartDashboard/Control/LateralAccel");
-    public static final LoggedNetworkNumber rotationalAccelLimitRPSPS = new LoggedNetworkNumber("/SmartDasboard/Control/AngularAccel");
-
-
+    public static final double maxSpeedMPS = 0.6;
+    public static final double maxRotRPS = 5;
+    public static final double lateralAccelLimitMPSPS = 4;
+    public static final double rotationalAccelLimitRPSPS = 20;
     public static final double deadZone = 0.01;
 
     public static final double steeringRatio =
@@ -45,87 +40,61 @@ public final class Constants {
     public static final double wheelRadius = 1.932; // inches
     public static final double driveRatio = 5.903;
 
-    public static final Rotation2d[] absoluteEncoderOffsets = { // Absolute encoder offsets (do no change unless swerve modules are rebuilt, or wheels are steering all over the place
-      Rotation2d.fromRadians(1.890),   // To determine these values, SET THEM ALL TO 0, deploy the code and replace the 0s with "AdvantageKit/Drive/Module{#}/SteerPosAbsolute" for each module
-      Rotation2d.fromRadians(-1.213),          
-      Rotation2d.fromRadians(-2.163),
-      Rotation2d.fromRadians(2.324)
+    public static final Rotation2d[] absoluteEncoderOffsets = {
+      Rotation2d.fromRadians(0.332),
+      Rotation2d.fromRadians(-0.664),
+      Rotation2d.fromRadians(1.921),
+      Rotation2d.fromRadians(-0.823)
     };
 
-    public static final Translation2d[] offsets = { // translations of each swerve module in the order: {FrontRight, BR, BL, FL}
-      new Translation2d(0.238125, -0.238125),      // When editing keep in mind that x is forward and back (+x is forward) and y is side to side (+y is *LEFT*)
+    public static final Translation2d[] offsets = {
+      new Translation2d(0.238125, -0.238125),
       new Translation2d(-0.238125, -0.238125),
       new Translation2d(-0.238125, 0.238125),
       new Translation2d(0.238125, 0.238125)
     };
 
-    public static final Boolean[] driveMotorInversions = {false,false,false,false}; // Set individual motor inversions (FrontRight, BR, BL, FL)
+    public static double driveS = 0;
+    public static double driveV = 0.01;
+    public static double driveP = 0.03;
+    public static double driveI = 0.0;
+    public static double driveD = 0.0;
 
-    // Default values for these constants should be set in initLiveConstants() below
-    public static final LoggedNetworkNumber driveS = new LoggedNetworkNumber("/SmartDashboard/PIDs/driveS");
-    public static final LoggedNetworkNumber driveV = new LoggedNetworkNumber("/SmartDashboard/PIDs/driveV");
-    public static final LoggedNetworkNumber driveP = new LoggedNetworkNumber("/SmartDashboard/PIDs/driveP");
-    public static final LoggedNetworkNumber driveI = new LoggedNetworkNumber("/SmartDashboard/PIDs/driveI");
-    public static final LoggedNetworkNumber driveD = new LoggedNetworkNumber("/SmartDashboard/PIDs/driveD");
-
-    public static final LoggedNetworkNumber steerP = new LoggedNetworkNumber("/SmartDashboard/PIDs/steerP");
-    public static final LoggedNetworkNumber steerI = new LoggedNetworkNumber("/SmartDashboard/PIDs/steerI");
-    public static final LoggedNetworkNumber steerD = new LoggedNetworkNumber("/SmartDashboard/PIDs/steerD");
+    public static double steerP = 29;
+    public static double steerI = 0.001;
+    public static double steerD = 0.2;
   }
 
+  public static final class shooterConstants {
 
-  public static final class elevatorConstants {
-    public static double wristDriveRatio = 0.1; // Ratio of wrist rotations to motor rotations
-    public static double rollerDriveRatio = 1; // Ratio of roller rotations to motor rotations
-    public static double rollerDiameter = 2; // Diameter of rollers
+    public static int shootBeamID = 0;
+    public static int intakeBeamID = 1;
+    public static double shooterSpeed = 15;
 
-    public static final LoggedNetworkNumber elvP = new LoggedNetworkNumber("/SmartDashboard/PIDs/elvP");
-    public static final LoggedNetworkNumber elvI = new LoggedNetworkNumber("/SmartDashboard/PIDs/elvI");
-    public static final LoggedNetworkNumber elvD = new LoggedNetworkNumber("/SmartDashboard/PIDs/elvD");
-    public static final LoggedNetworkNumber elvVel = new LoggedNetworkNumber("/SmartDashboard/PIDs/elvVel");
-    public static final LoggedNetworkNumber elvAccel = new LoggedNetworkNumber("/SmartDashboard/PIDs/elvAccel");
-    public static final LoggedNetworkNumber elvJerk = new LoggedNetworkNumber("/SmartDashboard/PIDs/elvJerk");
+    public static double shootWheelDiameter = 4.0;
 
-    public static final LoggedNetworkNumber manipP = new LoggedNetworkNumber("/SmartDashboard/PIDs/manipP");
-    public static final LoggedNetworkNumber manipI = new LoggedNetworkNumber("/SmartDashboard/PIDs/manipI");
-    public static final LoggedNetworkNumber manipD = new LoggedNetworkNumber("/SmartDashboard/PIDs/manipD");
-    public static final LoggedNetworkNumber manipFF = new LoggedNetworkNumber("/SmartDashboard/PIDs/manipFF");
+    public static double elevatorConversion = 74 / 14 * 50;
+
+    public static double shooterP = 0;
+    public static double shooterI = 0;
+    public static double shooterD = 0;
+
+    public static double elevatorP = 0;
+    public static double elevatorI = 0;
+    public static double elevatorD = 0;
+    public static double elevatorG = 0;
+
+    public static double conveyorP = 0;
+    public static double conveyorI = 0;
+    public static double conveyorD = 0;
+    public static double conveyorFF = 0;
+
+    public static Rotation2d elevatorOffset =
+        Rotation2d.fromRadians(2.924).minus(Rotation2d.fromDegrees(180));
+    public static double shooterFF = 0.0095;
   }
 
-
-  public static void initLiveConstants() {
-    driveConstants.maxSpeedMPS.set(0.6);
-    driveConstants.maxRotRPS.set(5);
-    driveConstants.lateralAccelLimitMPSPS.set(4);
-    driveConstants.rotationalAccelLimitRPSPS.set(20);
-
-
-    driveConstants.driveS.set(0);
-    driveConstants.driveV.set(0.01);
-    driveConstants.driveP.set(0.03);
-    driveConstants.driveI.set(0.0);
-    driveConstants.driveD.set(0.0);
-
-    driveConstants.steerP.set(29);
-    driveConstants.steerI.set(0.001);
-    driveConstants.steerD.set(0.2);
-
-    elevatorConstants.elvP.set(0.1);
-    elevatorConstants.elvI.set(0);
-    elevatorConstants.elvD.set(0);
-    elevatorConstants.elvVel.set(0);
-    elevatorConstants.elvAccel.set(0);
-    elevatorConstants.elvJerk.set(0);
-
-    elevatorConstants.manipP.set(0.06);
-    elevatorConstants.manipI.set(0);
-    elevatorConstants.manipD.set(0);
-    elevatorConstants.manipFF.set(0);
-
-  }
-
-
-  public static final Mode currentMode = Mode.REAL;
+  public static final Mode currentMode = Mode.SIM;
 
   public static enum Mode {
     /** Running on a real robot. */
@@ -138,4 +107,3 @@ public final class Constants {
     REPLAY
   }
 }
-
