@@ -13,15 +13,11 @@
 
 package frc.robot;
 
-import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
-import frc.robot.Commands.autoCmd;
-
 import org.littletonrobotics.junction.LogFileUtil;
 import org.littletonrobotics.junction.LoggedRobot;
 import org.littletonrobotics.junction.Logger;
 import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
-// import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
 import org.littletonrobotics.junction.networktables.NT4Publisher;
 import org.littletonrobotics.junction.wpilog.WPILOGReader;
 import org.littletonrobotics.junction.wpilog.WPILOGWriter;
@@ -33,10 +29,11 @@ import org.littletonrobotics.junction.wpilog.WPILOGWriter;
  * project.
  */
 public class Robot extends LoggedRobot {
-
-  private final LoggedDashboardChooser<Command> chooser =
+  private static final String defaultAuto = "Default";
+  private static final String customAuto = "My Auto";
+  private String autoSelected;
+  private final LoggedDashboardChooser<String> chooser =
       new LoggedDashboardChooser<>("Auto Choices");
-  
 
   private RobotContainer robotContainer;
   /**
@@ -66,8 +63,8 @@ public class Robot extends LoggedRobot {
     // Set up data receivers & replay source
     switch (Constants.currentMode) {
       case REAL:
-        // Running on a real robot, log to local SD card
-        Logger.addDataReceiver(new WPILOGWriter("/home/lvuser/logs"));
+        // Running on a real robot, log to a USB stick ("/U/logs")
+        Logger.addDataReceiver(new WPILOGWriter());
         Logger.addDataReceiver(new NT4Publisher());
         break;
 
@@ -94,9 +91,6 @@ public class Robot extends LoggedRobot {
     // Initialize auto chooser
 
     robotContainer = new RobotContainer();
-
-
-    chooser.addDefaultOption("mobility", new autoCmd(robotContainer.swerve));
   }
 
   /** This function is called periodically during all modes. */
@@ -114,7 +108,7 @@ public class Robot extends LoggedRobot {
   /** This function is called periodically during autonomous. */
   @Override
   public void autonomousPeriodic() {
-    robotContainer.swerve.setDefaultCommand(chooser.get());
+    robotContainer.swerve.setDefaultCommand(robotContainer.auto);
   }
 
   /** This function is called once when teleop is enabled. */
