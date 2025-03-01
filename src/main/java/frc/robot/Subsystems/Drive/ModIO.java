@@ -8,18 +8,19 @@ public interface ModIO {
   public static class ModIOIn {
     double driveVelocityRPS;
     double driveVelocityMPS;
-    double steerVelocityRPS;
     double driveCurrentAmps;
-    double steerCurrentAmps;
     double driveVolts;
+    double driveVelErr;
+    double driveDutyCycle;
+    double drivePosition;
+    double steerVelocityRPS;
+    double steerCurrentAmps;
     double steerVolts;
     Rotation2d steerPosRelative;
     Rotation2d steerPosRelativePre;
     Rotation2d steerPosAbsolute;
     double steerPosRaw;
-    double driveVelErr;
     double steerPosErr;
-    double driveDutyCycle;
     double currentLimit;
     Rotation2d targetAngle;
     double targetSpeed;

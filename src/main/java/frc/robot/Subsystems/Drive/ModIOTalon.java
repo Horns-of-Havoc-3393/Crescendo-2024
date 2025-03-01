@@ -11,8 +11,10 @@ import com.ctre.phoenix6.controls.PositionDutyCycle;
 import com.ctre.phoenix6.controls.VelocityDutyCycle;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.units.measure.*;
 import frc.robot.Constants.driveConstants;
 
 public class ModIOTalon implements ModIO {
@@ -22,14 +24,15 @@ public class ModIOTalon implements ModIO {
 
   CANcoder absEncoder;
 
-  StatusSignal<Double> driveVelocity;
-  StatusSignal<Double> steerVelocity;
-  StatusSignal<Double> driveCurrent;
-  StatusSignal<Double> steerCurrent;
-  StatusSignal<Double> driveVolts;
-  StatusSignal<Double> steerVolts;
-  StatusSignal<Double> steerPosRelative;
-  StatusSignal<Double> steerPosAbsolute;
+  StatusSignal<AngularVelocity> driveVelocity;
+  StatusSignal<AngularVelocity> steerVelocity;
+  StatusSignal<Angle> drivePosition;
+  StatusSignal<Current> driveCurrent;
+  StatusSignal<Current> steerCurrent;
+  StatusSignal<Voltage> driveVolts;
+  StatusSignal<Voltage> steerVolts;
+  StatusSignal<Angle> steerPosRelative;
+  StatusSignal<Angle> steerPosAbsolute;
   StatusSignal<Double> driveVelErr;
   StatusSignal<Double> steerPosErr;
   StatusSignal<Double> driveDutyCycle;
@@ -58,12 +61,14 @@ public class ModIOTalon implements ModIO {
     MotorOutputConfigs outCfg = new MotorOutputConfigs();
     outCfg.NeutralMode = NeutralModeValue.Brake;
     drive.getConfigurator().apply(outCfg);
+
+    outCfg.Inverted = InvertedValue.Clockwise_Positive;
     steer.getConfigurator().apply(outCfg);
 
-    this.steer.setInverted(true);
 
     driveVelocity = drive.getVelocity();
     steerVelocity = steer.getVelocity();
+    drivePosition = drive.getPosition();
     driveCurrent = drive.getStatorCurrent();
     steerCurrent = steer.getStatorCurrent();
     driveVolts = drive.getMotorVoltage();
@@ -108,6 +113,7 @@ public class ModIOTalon implements ModIO {
             / driveConstants.driveRatio
             * (driveConstants.wheelRadius * 0.0254 * 2 * Math.PI);
     inputs.driveCurrentAmps = driveCurrent.getValueAsDouble();
+    inputs.drivePosition = drivePosition.getValueAsDouble();
     inputs.driveVolts = driveVolts.getValueAsDouble();
 
     inputs.steerVelocityRPS = steerVelocity.getValueAsDouble();
@@ -146,8 +152,6 @@ public class ModIOTalon implements ModIO {
   public void setCurrentLimit(double limit) {
     CurrentLimitsConfigs conf = new CurrentLimitsConfigs();
     conf.SupplyCurrentLimit = limit;
-    conf.SupplyCurrentThreshold = limit + 5;
-    conf.SupplyTimeThreshold = 0.1;
     conf.StatorCurrentLimit = limit;
     conf.StatorCurrentLimitEnable = true;
     conf.SupplyCurrentLimitEnable = true;

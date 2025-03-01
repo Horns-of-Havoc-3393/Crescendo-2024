@@ -3,27 +3,21 @@ package frc.robot.Subsystems.Drive;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
+import edu.wpi.first.wpilibj.RobotController;
 import frc.robot.Constants.driveConstants;
 import org.littletonrobotics.junction.Logger;
-import org.littletonrobotics.junction.networktables.LoggedDashboardNumber;
 
 public class SwerveMod {
 
   ModIOTalon io;
   ModIOInAutoLogged inputs;
 
+  SwerveModuleState savedState;
+
   int id;
 
-  LoggedDashboardNumber driveS;
-  LoggedDashboardNumber driveV;
-  LoggedDashboardNumber driveP;
-  LoggedDashboardNumber driveI;
-  LoggedDashboardNumber driveD;
-
-  LoggedDashboardNumber steerP;
-  LoggedDashboardNumber steerI;
-  LoggedDashboardNumber steerD;
 
   int encoderResets = 0;
 
@@ -39,27 +33,10 @@ public class SwerveMod {
     io.setEncoderOffset((inputs.steerPosRelativePre.minus(inputs.steerPosAbsolute)));
     io.setCurrentLimit(driveConstants.currentLimit);
 
-    driveS = new LoggedDashboardNumber("PIDs/driveS", driveConstants.driveS);
-    driveS.set(driveConstants.driveS);
-    driveV = new LoggedDashboardNumber("PIDs/driveV", driveConstants.driveV);
-    driveV.set(driveConstants.driveV);
-    driveP = new LoggedDashboardNumber("PIDs/driveP", driveConstants.driveP);
-    driveP.set(driveConstants.driveP);
-    driveI = new LoggedDashboardNumber("PIDs/driveI", driveConstants.driveI);
-    driveI.set(driveConstants.driveI);
-    driveD = new LoggedDashboardNumber("PIDs/driveD", driveConstants.driveD);
-    driveD.set(driveConstants.driveD);
-
-    steerP = new LoggedDashboardNumber("PIDs/steerP", driveConstants.driveP);
-    steerP.set(driveConstants.steerP);
-    steerI = new LoggedDashboardNumber("PIDs/steerI", driveConstants.driveI);
-    steerI.set(driveConstants.steerI);
-    steerD = new LoggedDashboardNumber("PIDs/steerD", driveConstants.driveD);
-    steerD.set(driveConstants.steerD);
   }
 
   public void periodic() {
-    double initial = Logger.getRealTimestamp();
+    double initial = RobotController.getFPGATime();
     // io.setDriveVelPID(driveS.get(), driveV.get(), driveP.get(), driveI.get(), driveD.get());
     // io.setSteerPID(steerP.get(), steerI.get(), steerD.get());
     io.updateInputs(inputs);
@@ -69,7 +46,7 @@ public class SwerveMod {
       encoderResets++;
     }
     Logger.processInputs("Drive/Module" + id, inputs);
-    Logger.recordOutput("Timers/SwerveModPd", (Logger.getRealTimestamp() - initial) * 0.000001);
+    Logger.recordOutput("Timers/SwerveModPd", (RobotController.getFPGATime() - initial) * 0.000001);
   }
 
   public void updatePIDs() {
@@ -80,35 +57,48 @@ public class SwerveMod {
     //     driveConstants.driveI,
     //     driveConstants.driveD);
     // io.setSteerPID(driveConstants.steerP, driveConstants.driveI, driveConstants.driveD);
-    io.setDriveVelPID(driveS.get(), driveV.get(), driveP.get(), driveI.get(), driveD.get());
-    io.setSteerPID(steerP.get(), steerI.get(), steerD.get());
+    io.setDriveVelPID(driveConstants.driveS.get(), driveConstants.driveV.get(), driveConstants.driveP.get(), driveConstants.driveI.get(), driveConstants.driveD.get());
+    io.setSteerPID(driveConstants.steerP.get(), driveConstants.steerI.get(), driveConstants.steerD.get());
   }
 
   public void setSwerveState(SwerveModuleState state) {
     Logger.recordOutput("Drive/Module" + id + "/targetSpeed", state.speedMetersPerSecond);
     Logger.recordOutput("Drive/Module" + id + "/targetAngle", state.angle);
-    SwerveModuleState optimizedState = SwerveModuleState.optimize(state, inputs.steerPosRelative);
+    
+    state.optimize(inputs.steerPosRelative);
     Logger.recordOutput(
-        "Drive/Module" + id + "/optimizedSpeed", optimizedState.speedMetersPerSecond);
-    Logger.recordOutput("Drive/Module" + id + "/optimizedAngle", optimizedState.angle);
+        "Drive/Module" + id + "/optimizedSpeed", state.speedMetersPerSecond);
+    Logger.recordOutput("Drive/Module" + id + "/optimizedAngle", state.angle);
 
-    if (Math.abs(optimizedState.speedMetersPerSecond) < 0.1) {
+    savedState = state;
+    if (Math.abs(state.speedMetersPerSecond) < 0.1) {
       stop();
     } else {
-      io.setDriveSpeed(optimizedState.speedMetersPerSecond);
+      io.setDriveSpeed(state.speedMetersPerSecond * (driveConstants.driveMotorInversions[id-1] ? -1 : 1));
 
       double setpoint =
-          inputs.steerPosRaw + optimizedState.angle.minus(inputs.steerPosRelative).getRotations();
+          inputs.steerPosRaw + state.angle.minus(inputs.steerPosRelative).getRotations();
       io.setSteerPos(setpoint);
     }
   }
 
+  // returns the current state of the module as measured by the encoders
   public SwerveModuleState getState() {
     return new SwerveModuleState(inputs.driveVelocityMPS, inputs.steerPosRelative);
+  }
+  public SwerveModulePosition getPosition() {
+    double distance = inputs.drivePosition * Math.PI * 2 * driveConstants.wheelRadius;
+    return new SwerveModulePosition(distance, inputs.steerPosRelative);
+  }
+
+  // returns the target states sent to the swerve module
+  public SwerveModuleState getTargetState() {
+    return savedState;
   }
 
   public void stop() {
     io.setDriveDutyCycle(0.0);
     io.setSteerDutyCycle(0.0);
   }
+
 }
